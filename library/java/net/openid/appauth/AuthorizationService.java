@@ -95,7 +95,8 @@ public class AuthorizationService {
                 clientConfiguration,
                 BrowserSelector.select(
                         context,
-                        clientConfiguration.getBrowserMatcher()),
+                        clientConfiguration.getBrowserMatcher(),
+                        clientConfiguration.getFallbackBrowsers()),
                 new CustomTabManager(context));
     }
 

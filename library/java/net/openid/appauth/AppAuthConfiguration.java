@@ -21,6 +21,10 @@ import net.openid.appauth.browser.BrowserMatcher;
 import net.openid.appauth.connectivity.ConnectionBuilder;
 import net.openid.appauth.connectivity.DefaultConnectionBuilder;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Defines configuration properties that control the behavior of the AppAuth library, independent
  * of the OAuth2 specific details that are described.
@@ -40,11 +44,21 @@ public class AppAuthConfiguration {
     @NonNull
     private final ConnectionBuilder mConnectionBuilder;
 
+    @NonNull
+    private final List<String> fallbackBrowsers;
+
     private AppAuthConfiguration(
             @NonNull BrowserMatcher browserMatcher,
-            @NonNull ConnectionBuilder connectionBuilder) {
+            @NonNull ConnectionBuilder connectionBuilder,
+            @NonNull List<String> fallbackBrowsers) {
         mBrowserMatcher = browserMatcher;
         mConnectionBuilder = connectionBuilder;
+        this.fallbackBrowsers = fallbackBrowsers;
+    }
+
+    @NonNull
+    public List<String> getFallbackBrowsers() {
+        return fallbackBrowsers;
     }
 
     /**
@@ -71,6 +85,13 @@ public class AppAuthConfiguration {
 
         private BrowserMatcher mBrowserMatcher = AnyBrowserMatcher.INSTANCE;
         private ConnectionBuilder mConnectionBuilder = DefaultConnectionBuilder.INSTANCE;
+        private List<String> fallbackBrowsers = Collections.emptyList();
+
+        public Builder setFallbackBrowsers(@NonNull String... fallbackBrowser) {
+            this.fallbackBrowsers = Arrays.asList(fallbackBrowser);
+
+            return this;
+        }
 
         /**
          * Specify the browser matcher to use, which controls the browsers that can be used
@@ -99,7 +120,7 @@ public class AppAuthConfiguration {
          */
         @NonNull
         public AppAuthConfiguration build() {
-            return new AppAuthConfiguration(mBrowserMatcher, mConnectionBuilder);
+            return new AppAuthConfiguration(mBrowserMatcher, mConnectionBuilder, fallbackBrowsers);
         }
 
 

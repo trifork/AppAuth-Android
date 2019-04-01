@@ -30,6 +30,7 @@ import androidx.annotation.VisibleForTesting;
 import androidx.browser.customtabs.CustomTabsService;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -65,6 +66,8 @@ public final class BrowserSelector {
             Intent.ACTION_VIEW,
             Uri.parse("http://www.example.com"));
 
+
+
     /**
      * Retrieves the full list of browsers installed on the device. Two entries will exist
      * for each browser that supports custom tabs, with the {@link BrowserDescriptor#useCustomTab}
@@ -75,14 +78,29 @@ public final class BrowserSelector {
     @SuppressLint("PackageManagerGetSignatures")
     @NonNull
     public static List<BrowserDescriptor> getAllBrowsers(Context context) {
+        return getAllBrowsers(context, null);
+    }
+
+    /**
+     * Retrieves the full list of browsers installed on the device. Two entries will exist
+     * for each browser that supports custom tabs, with the {@link BrowserDescriptor#useCustomTab}
+     * flag set to `true` in one and `false` in the other. The list is in the
+     * order returned by the package manager, so indirectly reflects the user's preferences
+     * (i.e. their default browser, if set, should be the first entry in the list).
+     */
+    @SuppressLint("PackageManagerGetSignatures")
+    @NonNull
+    public static List<BrowserDescriptor> getAllBrowsers(Context context, List<String> fallbackBrowsers) {
         PackageManager pm = context.getPackageManager();
-        List<BrowserDescriptor> browsers = new ArrayList<>();
+
         String defaultBrowserPackage = null;
 
         int queryFlag = PackageManager.GET_RESOLVED_FILTER;
         if (VERSION.SDK_INT >= VERSION_CODES.M) {
             queryFlag |= PackageManager.MATCH_ALL;
         }
+
+
         // When requesting all matching activities for an intent from the package manager,
         // the user's preferred browser is not guaranteed to be at the head of this list.
         // Therefore, the preferred browser must be separately determined and the resultant
@@ -95,6 +113,26 @@ public final class BrowserSelector {
         List<ResolveInfo> resolvedActivityList =
                 pm.queryIntentActivities(BROWSER_INTENT, queryFlag);
 
+
+
+        List<BrowserDescriptor> browserDescriptors = filterBrowsers(pm, defaultBrowserPackage, resolvedActivityList);
+        if (browserDescriptors.isEmpty()) {
+            for (String packageName: fallbackBrowsers) {
+                List<ResolveInfo> fallBackBrowser = getFallBackBrowsers(pm, packageName);
+                List<BrowserDescriptor> usableFallbackBrowsers = filterBrowsers(pm, defaultBrowserPackage, fallBackBrowser);
+                if (!usableFallbackBrowsers.isEmpty()) {
+                    return usableFallbackBrowsers;
+                }
+            }
+            return Collections.emptyList();
+        } else {
+            return browserDescriptors;
+        }
+
+    }
+
+    private static List<BrowserDescriptor> filterBrowsers(PackageManager pm, String defaultBrowserPackage, List<ResolveInfo> resolvedActivityList) {
+        List<BrowserDescriptor> browsers = new ArrayList<>();
         for (ResolveInfo info : resolvedActivityList) {
             // ignore handlers which are not browsers
             if (!isFullBrowser(info)) {
@@ -138,6 +176,29 @@ public final class BrowserSelector {
         return browsers;
     }
 
+    private static List<ResolveInfo> getFallBackBrowsers(PackageManager pm, String fallbackBrowserPackageName) {
+        if (fallbackBrowserPackageName == null || fallbackBrowserPackageName.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        Intent fallbackNBrowserIntent = new Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("http://www.example.com"));
+        fallbackNBrowserIntent.setPackage(fallbackBrowserPackageName);
+
+        int queryFlag = PackageManager.GET_RESOLVED_FILTER;
+        if (VERSION.SDK_INT >= VERSION_CODES.M) {
+            queryFlag |= PackageManager.MATCH_ALL;
+        }
+
+        List<ResolveInfo> resolvedActivityList =
+            pm.queryIntentActivities(fallbackNBrowserIntent, queryFlag);
+        if (resolvedActivityList == null) {
+            return Collections.emptyList();
+        } else {
+            return resolvedActivityList;
+        }
+    }
+
     /**
      * Searches through all browsers for the best match based on the supplied browser matcher.
      * Custom tab supporting browsers are preferred, if the matcher permits them, and browsers
@@ -150,7 +211,22 @@ public final class BrowserSelector {
     @SuppressLint("PackageManagerGetSignatures")
     @Nullable
     public static BrowserDescriptor select(Context context, BrowserMatcher browserMatcher) {
-        List<BrowserDescriptor> allBrowsers = getAllBrowsers(context);
+        return select(context, browserMatcher, Collections.emptyList());
+    }
+
+    /**
+     * Searches through all browsers for the best match based on the supplied browser matcher.
+     * Custom tab supporting browsers are preferred, if the matcher permits them, and browsers
+     * are evaluated in the order returned by the package manager, which should indirectly match
+     * the user's preferences.
+     *
+     * @param context {@link Context} to use for accessing {@link PackageManager}.
+     * @return The package name recommended to use for connecting to custom tabs related components.
+     */
+    @SuppressLint("PackageManagerGetSignatures")
+    @Nullable
+    public static BrowserDescriptor select(Context context, BrowserMatcher browserMatcher, List<String> fallbackBrowsers) {
+        List<BrowserDescriptor> allBrowsers = getAllBrowsers(context, fallbackBrowsers);
         BrowserDescriptor bestMatch = null;
         for (BrowserDescriptor browser : allBrowsers) {
             if (!browserMatcher.matches(browser)) {
