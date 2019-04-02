@@ -114,21 +114,23 @@ public final class BrowserSelector {
                 pm.queryIntentActivities(BROWSER_INTENT, queryFlag);
 
 
-
         List<BrowserDescriptor> browserDescriptors = filterBrowsers(pm, defaultBrowserPackage, resolvedActivityList);
-        if (browserDescriptors.isEmpty()) {
-            for (String packageName: fallbackBrowsers) {
-                List<ResolveInfo> fallBackBrowser = getFallBackBrowsers(pm, packageName);
-                List<BrowserDescriptor> usableFallbackBrowsers = filterBrowsers(pm, defaultBrowserPackage, fallBackBrowser);
-                if (!usableFallbackBrowsers.isEmpty()) {
-                    return usableFallbackBrowsers;
-                }
-            }
-            return Collections.emptyList();
-        } else {
+        if (!browserDescriptors.isEmpty()) {
             return browserDescriptors;
+        } else {
+            return getBrowsersFallbackBrowserIfPossible(fallbackBrowsers, pm, defaultBrowserPackage);
         }
+    }
 
+    private static List<BrowserDescriptor> getBrowsersFallbackBrowserIfPossible(List<String> fallbackBrowsers, PackageManager pm, String defaultBrowserPackage) {
+        for (String packageName: fallbackBrowsers) {
+            List<ResolveInfo> fallBackBrowser = getFallBackBrowsers(pm, packageName);
+            List<BrowserDescriptor> usableFallbackBrowsers = filterBrowsers(pm, defaultBrowserPackage, fallBackBrowser);
+            if (!usableFallbackBrowsers.isEmpty()) {
+                return usableFallbackBrowsers;
+            }
+        }
+        return Collections.emptyList();
     }
 
     private static List<BrowserDescriptor> filterBrowsers(PackageManager pm, String defaultBrowserPackage, List<ResolveInfo> resolvedActivityList) {
@@ -177,25 +179,29 @@ public final class BrowserSelector {
     }
 
     private static List<ResolveInfo> getFallBackBrowsers(PackageManager pm, String fallbackBrowserPackageName) {
-        if (fallbackBrowserPackageName == null || fallbackBrowserPackageName.trim().isEmpty()) {
-            return Collections.emptyList();
-        }
-        Intent fallbackNBrowserIntent = new Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("http://www.example.com"));
-        fallbackNBrowserIntent.setPackage(fallbackBrowserPackageName);
+        if (VERSION.SDK_INT >= VERSION_CODES.GINGERBREAD) {
+            if (fallbackBrowserPackageName == null || fallbackBrowserPackageName.trim().isEmpty()) {
+                return Collections.emptyList();
+            }
+            Intent fallbackNBrowserIntent = new Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("http://www.example.com"));
+            fallbackNBrowserIntent.setPackage(fallbackBrowserPackageName);
 
-        int queryFlag = PackageManager.GET_RESOLVED_FILTER;
-        if (VERSION.SDK_INT >= VERSION_CODES.M) {
-            queryFlag |= PackageManager.MATCH_ALL;
-        }
+            int queryFlag = PackageManager.GET_RESOLVED_FILTER;
+            if (VERSION.SDK_INT >= VERSION_CODES.M) {
+                queryFlag |= PackageManager.MATCH_ALL;
+            }
 
-        List<ResolveInfo> resolvedActivityList =
-            pm.queryIntentActivities(fallbackNBrowserIntent, queryFlag);
-        if (resolvedActivityList == null) {
-            return Collections.emptyList();
+            List<ResolveInfo> resolvedActivityList =
+                pm.queryIntentActivities(fallbackNBrowserIntent, queryFlag);
+            if (resolvedActivityList == null) {
+                return Collections.emptyList();
+            } else {
+                return resolvedActivityList;
+            }
         } else {
-            return resolvedActivityList;
+            return Collections.emptyList();
         }
     }
 

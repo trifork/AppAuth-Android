@@ -56,6 +56,10 @@ public class AppAuthConfiguration {
         this.fallbackBrowsers = fallbackBrowsers;
     }
 
+    /**
+     * Specify a prioritized list of browser package names used as fallback when no browser is found
+     * by the standard approach.
+     */
     @NonNull
     public List<String> getFallbackBrowsers() {
         return fallbackBrowsers;
@@ -87,6 +91,12 @@ public class AppAuthConfiguration {
         private ConnectionBuilder mConnectionBuilder = DefaultConnectionBuilder.INSTANCE;
         private List<String> fallbackBrowsers = Collections.emptyList();
 
+
+        /**
+         * Specify a prioritized list of browser package names used as fallback when no browser is found
+         * by the standard approach.
+         */
+        @NonNull
         public Builder setFallbackBrowsers(@NonNull String... fallbackBrowser) {
             this.fallbackBrowsers = Arrays.asList(fallbackBrowser);
 
