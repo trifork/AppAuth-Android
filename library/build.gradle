@@ -65,7 +65,7 @@ uploadArchives {
     repositories {
         mavenLocal()
         mavenDeployer {
-            repository(url: "http://ci.fmk.netic.dk/nexus/content/repositories/trifork-internal/") {
+            repository(url: "http://nexus.ci82.trifork.com/content/repositories/trifork-internal/") {
                 authentication(userName: mavenUser, password: mavenPassword)
             }
         }

@@ -15,6 +15,7 @@
 package net.openid.appauth;
 
 import static net.openid.appauth.AuthorizationException.AuthorizationRequestErrors;
+import static net.openid.appauth.AuthorizationException.TYPE_GENERAL_ERROR;
 import static net.openid.appauth.Preconditions.checkArgument;
 import static net.openid.appauth.Preconditions.checkNotEmpty;
 import static net.openid.appauth.Preconditions.checkNotNull;
@@ -556,15 +557,16 @@ public class AuthState {
             mPendingActions = new ArrayList<>();
             mPendingActions.add(action);
         }
-
-        service.performTokenRequest(
-                createTokenRefreshRequest(refreshTokenAdditionalParams),
+        try {
+            TokenRequest tokenRefreshRequest = createTokenRefreshRequest(refreshTokenAdditionalParams);
+            service.performTokenRequest(
+                tokenRefreshRequest,
                 clientAuth,
                 new AuthorizationService.TokenResponseCallback() {
                     @Override
                     public void onTokenRequestCompleted(
-                            @Nullable TokenResponse response,
-                            @Nullable AuthorizationException ex) {
+                        @Nullable TokenResponse response,
+                        @Nullable AuthorizationException ex) {
                         update(response, ex);
 
                         String accessToken = null;
@@ -590,6 +592,18 @@ public class AuthState {
                         }
                     }
                 });
+        } catch(Exception e) {
+
+            //sets pending queue to null and processes all actions in the queue
+            List<AuthStateAction> actionsToProcess;
+            synchronized (mPendingActionsSyncObject) {
+                actionsToProcess = mPendingActions;
+                mPendingActions = null;
+            }
+            for (AuthStateAction a : actionsToProcess) {
+                a.execute(null, null, new AuthorizationException(TYPE_GENERAL_ERROR, 8888, null, null, null, e));
+            }
+        }
     }
 
     /**
