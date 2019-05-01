@@ -593,10 +593,19 @@ public class AuthState {
                     }
                 });
         } catch(Exception e) {
+            List<AuthStateAction> actionsToProcess;
             synchronized (mPendingActionsSyncObject) {
+                actionsToProcess = mPendingActions;
                 mPendingActions = null;
             }
-            throw e;
+            for (AuthStateAction a : actionsToProcess) {
+                a.execute(
+                    null,
+                    null,
+                    AuthorizationException.fromTemplate(
+                        AuthorizationRequestErrors.CLIENT_ERROR,
+                        e));
+            }
         }
     }
 
