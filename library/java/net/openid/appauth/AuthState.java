@@ -593,16 +593,10 @@ public class AuthState {
                     }
                 });
         } catch(Exception e) {
-
-            //sets pending queue to null and processes all actions in the queue
-            List<AuthStateAction> actionsToProcess;
             synchronized (mPendingActionsSyncObject) {
-                actionsToProcess = mPendingActions;
                 mPendingActions = null;
             }
-            for (AuthStateAction a : actionsToProcess) {
-                a.execute(null, null, new AuthorizationException(TYPE_GENERAL_ERROR, 8888, null, null, null, e));
-            }
+            throw e;
         }
     }
 
