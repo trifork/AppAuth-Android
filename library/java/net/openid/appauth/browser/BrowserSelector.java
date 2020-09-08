@@ -179,7 +179,6 @@ public final class BrowserSelector {
     }
 
     private static List<ResolveInfo> getFallBackBrowsers(PackageManager pm, String fallbackBrowserPackageName) {
-        if (VERSION.SDK_INT >= VERSION_CODES.GINGERBREAD) {
             if (fallbackBrowserPackageName == null || fallbackBrowserPackageName.trim().isEmpty()) {
                 return Collections.emptyList();
             }
@@ -200,9 +199,6 @@ public final class BrowserSelector {
             } else {
                 return resolvedActivityList;
             }
-        } else {
-            return Collections.emptyList();
-        }
     }
 
     /**
