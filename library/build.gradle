@@ -74,27 +74,6 @@ uploadArchives {
 }
 */
 
-publishing {
-    publications {
-        maven(MavenPublication) {
-            pom {
-
-                repositories {
-                    mavenLocal()
-                    maven {
-                        name 'nexus'
-                        url "http://ci.fmk.netic.dk/nexus/content/repositories/trifork-internal/"
-                        credentials {
-                            username mavenUser
-                            password mavenPassword
-                        }
-                    }
-                }
-            }
-
-        }
-    }
-}
 
 install {
 
@@ -126,6 +105,39 @@ install {
                     developerConnection "https://github.com/openid/AppAuth-Android.git"
                     url 'https://github.com/openid/AppAuth-Android'
                 }
+            }
+        }
+    }
+}
+
+android {
+    publishNonDefault true
+}
+
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+
+                groupId = group
+                artifactId = project.archivesBaseName
+                version = version
+
+
+                repositories {
+                    mavenLocal()
+                    maven {
+                        name 'nexus'
+                        url "http://ci.fmk.netic.dk/nexus/content/repositories/trifork-internal/"
+                        credentials {
+                            username mavenUser
+                            password mavenPassword
+                        }
+                    }
+                }
+
             }
         }
     }
